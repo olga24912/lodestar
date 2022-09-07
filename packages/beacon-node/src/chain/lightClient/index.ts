@@ -1,4 +1,4 @@
-import {altair, phase0, Root, RootHex, Slot, ssz, SyncPeriod} from "@lodestar/types";
+import {altair, phase0, Root, RootHex, Slot, ssz, SyncPeriod, Epoch} from "@lodestar/types";
 import {IChainForkConfig} from "@lodestar/config";
 import {CachedBeaconStateAltair, computeSyncPeriodAtEpoch, computeSyncPeriodAtSlot} from "@lodestar/state-transition";
 import {ILogger} from "@lodestar/utils";
@@ -285,6 +285,52 @@ export class LightClientServer {
     const syncCommitteeWitnessBlockRoot = partialUpdate.isFinalized
       ? (partialUpdate.finalizedCheckpoint.root as Uint8Array)
       : partialUpdate.blockRoot;
+
+    const syncCommitteeWitness = await this.db.syncCommitteeWitness.get(syncCommitteeWitnessBlockRoot);
+    if (!syncCommitteeWitness) {
+      throw Error(`finalizedBlockRoot not available ${toHexString(syncCommitteeWitnessBlockRoot)}`);
+    }
+
+    const nextSyncCommittee = await this.db.syncCommittee.get(syncCommitteeWitness.nextSyncCommitteeRoot);
+    if (!nextSyncCommittee) {
+      throw Error("nextSyncCommittee not available");
+    }
+
+    if (partialUpdate.isFinalized) {
+      return {
+        attestedHeader: partialUpdate.attestedHeader,
+        nextSyncCommittee: nextSyncCommittee,
+        nextSyncCommitteeBranch: getNextSyncCommitteeBranch(syncCommitteeWitness),
+        finalizedHeader: partialUpdate.finalizedHeader,
+        finalityBranch: partialUpdate.finalityBranch,
+        syncAggregate: partialUpdate.syncAggregate,
+        forkVersion: this.config.getForkVersion(partialUpdate.attestedHeader.slot),
+      };
+    } else {
+      return {
+        attestedHeader: partialUpdate.attestedHeader,
+        nextSyncCommittee: nextSyncCommittee,
+        nextSyncCommitteeBranch: getNextSyncCommitteeBranch(syncCommitteeWitness),
+        finalizedHeader: this.zero.finalizedHeader,
+        finalityBranch: this.zero.finalityBranch,
+        syncAggregate: partialUpdate.syncAggregate,
+        forkVersion: this.config.getForkVersion(partialUpdate.attestedHeader.slot),
+      };
+    }
+  }
+
+  async getEpochUpdates(epoch: Epoch): Promise<altair.LightClientUpdate> {
+    let period = Math.floor(epoch/256);
+
+    // Signature data
+    const partialUpdate = await this.db.bestPartialLightClientUpdate.get(period);
+    if (!partialUpdate) {
+      throw Error(`No partialUpdate available for period ${period}`);
+    }
+
+    const syncCommitteeWitnessBlockRoot = partialUpdate.isFinalized
+        ? (partialUpdate.finalizedCheckpoint.root as Uint8Array)
+        : partialUpdate.blockRoot;
 
     const syncCommitteeWitness = await this.db.syncCommitteeWitness.get(syncCommitteeWitnessBlockRoot);
     if (!syncCommitteeWitness) {

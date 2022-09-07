@@ -48,6 +48,10 @@ export function getLightclientApi(
       return {data: updates};
     },
 
+    async getEpochUpdates(start_epoch) {
+      return {data: await chain.lightClientServer.getEpochUpdates(start_epoch)};
+    },
+
     async getOptimisticUpdate() {
       return {data: await chain.lightClientServer.getOptimisticUpdate()};
     },

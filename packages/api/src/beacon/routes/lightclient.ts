@@ -1,7 +1,7 @@
 import {ContainerType, JsonPath, VectorCompositeType} from "@chainsafe/ssz";
 import {Proof} from "@chainsafe/persistent-merkle-tree";
 import {FINALIZED_ROOT_DEPTH} from "@lodestar/params";
-import {altair, phase0, ssz, SyncPeriod} from "@lodestar/types";
+import {altair, phase0, ssz, SyncPeriod, Epoch} from "@lodestar/types";
 import {
   ArrayOf,
   ReturnTypes,
@@ -42,6 +42,7 @@ export type Api = {
    * - Oldest update
    */
   getUpdates(startPeriod: SyncPeriod, count: number): Promise<{data: altair.LightClientUpdate[]}>;
+  getEpochUpdates(startEpoch: Epoch): Promise<{data: altair.LightClientUpdate}>;
   /**
    * Returns the latest optimistic head update available. Clients should use the SSE type `light_client_optimistic_update`
    * unless to get the very first head update after syncing, or if SSE are not supported by the server.
@@ -61,7 +62,8 @@ export type Api = {
  */
 export const routesData: RoutesData<Api> = {
   getStateProof: {url: "/eth/v1/beacon/light_client/proof/:stateId", method: "GET"},
-  getUpdates: {url: "/eth/v1/beacon/light_client/updates", method: "GET"},
+  getUpdates: {url: "/eth/v1/beacon/light_client/updates_period", method: "GET"},
+  getEpochUpdates: {url: "/eth/v1/beacon/light_client/updates_epoch", method: "GET"},
   getOptimisticUpdate: {url: "/eth/v1/beacon/light_client/optimistic_update/", method: "GET"},
   getFinalityUpdate: {url: "/eth/v1/beacon/light_client/finality_update/", method: "GET"},
   getBootstrap: {url: "/eth/v1/beacon/light_client/bootstrap/:blockRoot", method: "GET"},
@@ -71,6 +73,7 @@ export const routesData: RoutesData<Api> = {
 export type ReqTypes = {
   getStateProof: {params: {stateId: string}; query: {paths: string[]}};
   getUpdates: {query: {start_period: number; count: number}};
+  getEpochUpdates: {query: {start_epoch: number}};
   getOptimisticUpdate: ReqEmpty;
   getFinalityUpdate: ReqEmpty;
   getBootstrap: {params: {blockRoot: string}};
@@ -89,7 +92,11 @@ export function getReqSerializers(): ReqSerializers<Api, ReqTypes> {
       parseReq: ({query}) => [query.start_period, query.count],
       schema: {query: {start_period: Schema.UintRequired, count: Schema.UintRequired}},
     },
-
+    getEpochUpdates: {
+      writeReq: (start_epoch) => ({ query: {start_epoch} }),
+      parseReq: ({ query }) => [query.start_epoch],
+      schema: { query: { start_epoch: Schema.UintRequired } },
+    },
     getOptimisticUpdate: reqEmpty,
     getFinalityUpdate: reqEmpty,
 
@@ -133,6 +140,7 @@ export function getReturnTypes(): ReturnTypes<Api> {
     // Just sent the proof JSON as-is
     getStateProof: sameType(),
     getUpdates: ContainerData(ArrayOf(ssz.altair.LightClientUpdate)),
+    getEpochUpdates: ContainerData(ssz.altair.LightClientUpdate),
     getOptimisticUpdate: ContainerData(lightclientHeaderUpdate),
     getFinalityUpdate: ContainerData(lightclientFinalizedUpdate),
     getBootstrap: ContainerData(lightclientSnapshotWithProofType),
