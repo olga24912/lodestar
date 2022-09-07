@@ -10,6 +10,7 @@ import {
   StateArchiveRepository,
   VoluntaryExitRepository,
   BestPartialLightClientUpdateRepository,
+  BestPartialEpochLightClientUpdateRepository,
   CheckpointHeaderRepository,
   SyncCommitteeRepository,
   SyncCommitteeWitnessRepository,
@@ -48,6 +49,7 @@ export interface IBeaconDb {
 
   // lightclient
   bestPartialLightClientUpdate: BestPartialLightClientUpdateRepository;
+  bestPartialEpochLightClientUpdate: BestPartialEpochLightClientUpdateRepository;
   checkpointHeader: CheckpointHeaderRepository;
   syncCommittee: SyncCommitteeRepository;
   syncCommitteeWitness: SyncCommitteeWitnessRepository;
