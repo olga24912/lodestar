@@ -62,7 +62,7 @@ export type Api = {
  */
 export const routesData: RoutesData<Api> = {
   getStateProof: {url: "/eth/v1/beacon/light_client/proof/:stateId", method: "GET"},
-  getUpdates: {url: "/eth/v1/beacon/light_client/updates_period", method: "GET"},
+  getUpdates: {url: "/eth/v1/beacon/light_client/updates", method: "GET"},
   getEpochUpdates: {url: "/eth/v1/beacon/light_client/updates_epoch", method: "GET"},
   getOptimisticUpdate: {url: "/eth/v1/beacon/light_client/optimistic_update/", method: "GET"},
   getFinalityUpdate: {url: "/eth/v1/beacon/light_client/finality_update/", method: "GET"},
